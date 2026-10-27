@@ -1,0 +1,4 @@
+Product ID,Product Name,Branch,Current Stock,Minimum Stock,Status,Alert Sent,Last Alert At
+PRD001,A4 Printing Paper,Abuja,33,20,AVAILABLE,NO,
+PRD002,Printer Ink,Abuja,12,10,AVAILABLE,NO,
+PRD003,Stapler,Lagos,8,15,LOW STOCK,NO,

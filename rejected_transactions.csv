@@ -1,0 +1,2 @@
+Timestamp,Staff Name,Branch,Product ID,Product Name,Transaction Type,Quantity Requested,Available Stock,Rejection Reason,Status
+2026-10-01T09:05:00+01:00,Demo Staff,Lagos,PRD003,Stapler,Stock out,30,8,Insufficient stock available.,REJECTED

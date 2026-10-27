@@ -1,0 +1,1065 @@
+{
+  "name": "SmartStock AI - Inventory Entry",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "SmartStock Inventory Entry",
+        "formDescription": "Record stock movements across all business locations",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Staff Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Branch",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Abuja"
+                  },
+                  {
+                    "option": "Lagos"
+                  },
+                  {
+                    "option": "Kaduna"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Product Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Product ID",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Transaction type",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Stock in"
+                  },
+                  {
+                    "option": "Stock out"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Quantity",
+              "fieldType": "number",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Remarks",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -944,
+        -192
+      ],
+      "id": "08fc51df-8473-4156-8d08-1f5c51d2c182",
+      "name": "01 - Inventory Entry Form"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Transactions",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('01 - Inventory Entry Form').first().json.submittedAt }}",
+            "Staff Name": "={{ $('01 - Inventory Entry Form').first().json['Staff Name'] }}",
+            "Branch": "={{ $('01 - Inventory Entry Form').first().json.Branch }}",
+            "Product ID": "={{ $('01 - Inventory Entry Form').first().json['Product ID'] }}",
+            "Transaction Type": "={{ $('01 - Inventory Entry Form').first().json['Transaction type'] }}",
+            "Quantity": "={{ $('01 - Inventory Entry Form').first().json.Quantity }}",
+            "Remarks": "={{ $('01 - Inventory Entry Form').first().json.Remarks }}",
+            "Product Name": "={{ $('01 - Inventory Entry Form').first().json['Product Name'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Staff Name",
+              "displayName": "Staff Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Name",
+              "displayName": "Product Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product ID",
+              "displayName": "Product ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Transaction Type",
+              "displayName": "Transaction Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantity",
+              "displayName": "Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Remarks",
+              "displayName": "Remarks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        192,
+        -208
+      ],
+      "id": "a54665fb-56be-4ee6-a06d-6bf568df3670",
+      "name": "02 - Record Stock Transaction"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Stock_Balance",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Product ID",
+              "lookupValue": "={{ $('01 - Inventory Entry Form').item.json['Product ID'] }}"
+            },
+            {
+              "lookupColumn": "Branch",
+              "lookupValue": "={{ $('01 - Inventory Entry Form').item.json['Branch'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -720,
+        -192
+      ],
+      "id": "2738ece8-e3ca-4b0f-b80c-f3f39ee6c985",
+      "name": "03 - Check Current Stock Level"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst form = $('01 - Inventory Entry Form').first().json;\nconst stock = $input.first().json;\n\n// Find a field regardless of spaces or capitalization\nfunction getField(data, fieldName) {\n  const normalize = (value) =>\n    value.toLowerCase().replace(/\\s+/g, '');\n\n  const key = Object.keys(data).find(\n    k => normalize(k) === normalize(fieldName)\n  );\n\n  return key === undefined ? undefined : data[key];\n}\n\n// Convert a stock value safely into a number\nfunction parseStockNumber(value, fieldName) {\n  if (value === undefined || value === null ||\n      String(value).trim() === '') {\n    throw new Error(fieldName + ' is missing.');\n  }\n\n  const result = Number(\n    String(value).replace(/,/g, '').trim()\n  );\n\n  if (!Number.isFinite(result) || result < 0) {\n    throw new Error(fieldName + ' must be a valid non-negative number.');\n  }\n\n  return result;\n}\n\n// Read submitted form values\nconst quantity = Number(getField(form, 'Quantity'));\n\nconst transactionType = String(\n  getField(form, 'Transaction type') ?? ''\n).trim().toLowerCase();\n\n// Read existing Google Sheets stock values\nconst currentStock = parseStockNumber(\n  getField(stock, 'Current Stock'),\n  'Current Stock'\n);\n\nconst minimumStock = parseStockNumber(\n  getField(stock, 'Minimum Stock'),\n  'Minimum Stock'\n);\n\n// Begin transaction validation\nlet valid = true;\nlet message = '';\nlet newStock = currentStock;\n\nif (!Number.isInteger(quantity) || quantity <= 0) {\n  valid = false;\n  message = 'Quantity must be a positive whole number.';\n\n} else if (transactionType === 'stock in') {\n\n  newStock = currentStock + quantity;\n  message = 'Stock received successfully.';\n\n} else if (transactionType === 'stock out') {\n\n  if (quantity > currentStock) {\n    valid = false;\n    message = 'Insufficient stock available.';\n  } else {\n    newStock = currentStock - quantity;\n    message = 'Stock issued successfully.';\n  }\n\n} else {\n  valid = false;\n  message = 'Unknown transaction type: ' + transactionType;\n}\n\n// Determine inventory status\nconst stockStatus = newStock <= minimumStock\n  ? 'LOW STOCK'\n  : 'AVAILABLE';\n\n// Return data to the next n8n node\nreturn [{\n  json: {\n    ...form,\n    row_number: stock.row_number,\n    transactionType,\n    valid,\n    message,\n    previousStock: currentStock,\n    newStock,\n    minimumStock,\n    stockStatus\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        -192
+      ],
+      "id": "cbf80c21-9fd4-48fa-a9b9-96a8804b2906",
+      "name": "04 - Validate Stock Transaction"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "f4473bdc-eb51-49ca-bf5d-9c7c76592f22",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -272,
+        -192
+      ],
+      "id": "47ef3d5c-433e-4c21-afbf-12d0c16caa8c",
+      "name": "05 - Is Transaction Valid?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Stock_Balance",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "Product ID": "={{ $json['Product ID'] }}",
+            "Product Name ": "={{ $json['Product Name'] }}",
+            "Branch": "={{ $json.Branch }}",
+            "Current Stock ": "={{ $json.newStock }}",
+            "Minimum Stock": "={{ $json.minimumStock }}",
+            "Status": "={{ $json.stockStatus }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Product ID",
+              "displayName": "Product ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Name ",
+              "displayName": "Product Name ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Stock ",
+              "displayName": "Current Stock ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Minimum Stock",
+              "displayName": "Minimum Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -32,
+        -208
+      ],
+      "id": "aabdc7a4-e1c2-4240-bcea-d40e8eb917d2",
+      "name": "06 - Update Stock Balance"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cd024726-d4e5-4696-bc0d-712fc5a010cd",
+              "name": "status",
+              "value": "REJECTED",
+              "type": "string"
+            },
+            {
+              "id": "3a29c4fa-cc21-4246-ae36-2e9240678c2e",
+              "name": "Staff Name",
+              "value": "={{ $('04 - Validate Stock Transaction').item.json['Staff Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "39987a61-bcc3-4484-b4da-3793092e9585",
+              "name": "Product Name",
+              "value": "={{ $('04 - Validate Stock Transaction').item.json['Product Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "4c31dda7-2733-41bb-9768-c92520873c3a",
+              "name": "quantity/requested",
+              "value": "={{ $('04 - Validate Stock Transaction').item.json.Quantity }}",
+              "type": "number"
+            },
+            {
+              "id": "b0146e6f-3467-40ea-8572-37f67e4c9ea6",
+              "name": "availableStock",
+              "value": "={{ $('04 - Validate Stock Transaction').item.json.previousStock }}",
+              "type": "number"
+            },
+            {
+              "id": "08b77ef5-6970-4fda-bb95-6bbfbc02f5cc",
+              "name": "rejectionReason",
+              "value": "={{ $('04 - Validate Stock Transaction').item.json.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -288,
+        32
+      ],
+      "id": "6aa0fee5-e9db-41c3-8a1c-a282e82b310b",
+      "name": "07 - Handle Invalid Transaction"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Rejected_Transactions",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.submittedAt }}",
+            "Staff Name": "={{ $json['Staff Name'] }}",
+            "Branch": "={{ $json.Branch }}",
+            "Product ID": "={{ $json['Product ID'] }}",
+            "Product Name": "={{ $json['Product Name'] }}",
+            "Transaction Type": "={{ $json['Transaction type'] }}",
+            "Quantity Requested": "={{ $json.Quantity }}",
+            "Available Stock": "={{ $json.previousStock }}",
+            "Rejection Reason": "={{ $json.message }}",
+            "Status": "={{ $json.status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Staff Name",
+              "displayName": "Staff Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product ID",
+              "displayName": "Product ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Name",
+              "displayName": "Product Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Transaction Type",
+              "displayName": "Transaction Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantity Requested",
+              "displayName": "Quantity Requested",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Available Stock",
+              "displayName": "Available Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rejection Reason",
+              "displayName": "Rejection Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -64,
+        32
+      ],
+      "id": "381b869d-b50a-4139-b4af-88bf3e6df753",
+      "name": "08 - Log Rejected Transaction"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "edf0ebe7-cd8a-4991-96f7-7fb2a50ec700",
+              "leftValue": "={{ $('04 - Validate Stock Transaction').first().json.stockStatus }}",
+              "rightValue": "=LOW STOCK",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "d030fd62-136c-4907-a413-00699a245a74",
+              "leftValue": "={{ $('03 - Check Current Stock Level').first().json['Alert Sent'] ?? 'NO' }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        416,
+        -208
+      ],
+      "id": "d494810d-f7d9-4982-b896-976e72970195",
+      "name": "09 - Is Stock Running Low?"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "={{ 'LOW STOCK ALERT - ' + $('04 - Validate Stock Transaction').first().json['Product Name'] }}",
+        "message": "={{ `SMARTSTOCK AI - LOW STOCK ALERT  \n\nDear Inventory Manager, \nA product has reached or fallen below its minimum stock level. \n\nProduct: ${$('04 - Validate Stock Transaction').first().json['Product Name']}  \nProduct ID: ${$('04 - Validate Stock Transaction').first().json['Product ID']} \nBranch: ${$('04 - Validate Stock Transaction').first().json.Branch} \nCurrent Stock: ${$('04 - Validate Stock Transaction').first().json.newStock} \nMinimum Stock: ${$('04 - Validate Stock Transaction').first().json.minimumStock} \n\nStatus: LOW STOCK  \nAction Required: Please review the available inventory and arrange restocking where necessary.  This is an automated notification from SmartStock AI.` }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        -224
+      ],
+      "id": "66d591de-91d8-4b2e-8d76-dd2d3ed54c15",
+      "name": "10 - Send Low Stock Alert"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Stock_Balance",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('03 - Check Current Stock Level').first().json.row_number }}",
+            "Product ID": "={{ $('04 - Validate Stock Transaction').first().json['Product ID'] }}",
+            "Product Name ": "={{ $('04 - Validate Stock Transaction').first().json['Product Name'] }}",
+            "Branch": "={{ $('04 - Validate Stock Transaction').item.json.Branch }}",
+            "Current Stock ": "={{ $('04 - Validate Stock Transaction').first().json.newStock }}",
+            "Minimum Stock": "={{ $('04 - Validate Stock Transaction').item.json.minimumStock }}",
+            "Status": "={{ $('04 - Validate Stock Transaction').item.json.stockStatus }}",
+            "Alert Sent ": "YES",
+            "Last Alert At": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Product ID",
+              "displayName": "Product ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Name ",
+              "displayName": "Product Name ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Stock ",
+              "displayName": "Current Stock ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Minimum Stock",
+              "displayName": "Minimum Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Alert Sent ",
+              "displayName": "Alert Sent ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Alert At",
+              "displayName": "Last Alert At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        -224
+      ],
+      "id": "0914f28e-a80d-42c9-aba8-fff464908834",
+      "name": "11 - Mark Stock Alert Sent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "cdbe7fc8-c4bf-41ad-95c9-7b0d8f252319",
+              "leftValue": "={{ $('04 - Validate Stock Transaction').first().json.stockStatus }}",
+              "rightValue": "AVAILABLE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "607645c0-c343-42e5-b7d6-3b75da7f5cb4",
+              "leftValue": "={{ $('03 - Check Current Stock Level').item.json['Alert Sent '] }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        320,
+        64
+      ],
+      "id": "595d1a7c-6f67-4bad-9981-4acf613f2daa",
+      "name": "12 - Has Stock Recovered?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Stock_Balance",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('03 - Check Current Stock Level').first().json.row_number }}",
+            "Product ID": "={{ $('04 - Validate Stock Transaction').first().json['Product ID'] }}",
+            "Product Name ": "={{ $('04 - Validate Stock Transaction').first().json['Product Name'] }}",
+            "Branch": "={{ $('04 - Validate Stock Transaction').first().json.Branch }}",
+            "Current Stock ": "={{ $('04 - Validate Stock Transaction').first().json.newStock }}",
+            "Minimum Stock": "={{ $('04 - Validate Stock Transaction').first().json.minimumStock }}",
+            "Status": "={{ $('04 - Validate Stock Transaction').first().json.stockStatus }}",
+            "Alert Sent ": "NO"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Product ID",
+              "displayName": "Product ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Name ",
+              "displayName": "Product Name ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Stock ",
+              "displayName": "Current Stock ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Minimum Stock",
+              "displayName": "Minimum Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Alert Sent ",
+              "displayName": "Alert Sent ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Alert At",
+              "displayName": "Last Alert At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        656,
+        48
+      ],
+      "id": "5f6cd352-b18b-47e6-8d4c-488433e69077",
+      "name": "13 - Reset Stock Alert"
+    }
+  ],
+  "connections": {
+    "01 - Inventory Entry Form": {
+      "main": [
+        [
+          {
+            "node": "03 - Check Current Stock Level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 - Check Current Stock Level": {
+      "main": [
+        [
+          {
+            "node": "04 - Validate Stock Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 - Validate Stock Transaction": {
+      "main": [
+        [
+          {
+            "node": "05 - Is Transaction Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 - Is Transaction Valid?": {
+      "main": [
+        [
+          {
+            "node": "06 - Update Stock Balance",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "07 - Handle Invalid Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 - Update Stock Balance": {
+      "main": [
+        [
+          {
+            "node": "02 - Record Stock Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07 - Handle Invalid Transaction": {
+      "main": [
+        [
+          {
+            "node": "08 - Log Rejected Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 - Record Stock Transaction": {
+      "main": [
+        [
+          {
+            "node": "09 - Is Stock Running Low?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09 - Is Stock Running Low?": {
+      "main": [
+        [
+          {
+            "node": "10 - Send Low Stock Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "12 - Has Stock Recovered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10 - Send Low Stock Alert": {
+      "main": [
+        [
+          {
+            "node": "11 - Mark Stock Alert Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 - Has Stock Recovered?": {
+      "main": [
+        [
+          {
+            "node": "13 - Reset Stock Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}

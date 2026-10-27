@@ -1,0 +1,2 @@
+Analysis Date,Product ID,Product Name,Branch,Current Stock,Minimum Stock,Target Stock,Reorder Quantity,Priority,Approval Status,Pending Key,Notification Sent,Notification Date ,Approved Quantity,Approved By,Approval Date,Approval Remarks
+2026-10-01T09:00:00+01:00,PRD003,Stapler,Lagos,8,15,30,22,MEDIUM,PENDING,PRD003|Lagos|PENDING,NO,,,,,

@@ -1,0 +1,668 @@
+{
+  "name": "SmartStock AI - Restocking Intelligence",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        48
+      ],
+      "id": "0bb950b1-32d0-412a-a923-de21fc46a76d",
+      "name": "14 - Start Restocking Analysis"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Stock_Balance",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -976,
+        -192
+      ],
+      "id": "d4d9194e-3f0c-4278-9656-535732d1ca9e",
+      "name": "15 - Retrieve All Stock Records"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst products = $input.all();\n\n// Find fields even if headers contain extra spaces\nfunction getField(data, fieldName) {\n  const normalize = value =>\n    String(value).toLowerCase().replace(/\\s+/g, '');\n\n  const key = Object.keys(data).find(\n    k => normalize(k) === normalize(fieldName)\n  );\n\n  return key === undefined ? undefined : data[key];\n}\n\n// Safely convert spreadsheet values into numbers\nfunction toNumber(value, fieldName, productId) {\n  if (\n    value === undefined ||\n    value === null ||\n    String(value).trim() === ''\n  ) {\n    throw new Error(\n      fieldName + ' is missing for ' + productId\n    );\n  }\n\n  const number = Number(\n    String(value).replace(/,/g, '').trim()\n  );\n\n  if (!Number.isFinite(number) || number < 0) {\n    throw new Error(\n      fieldName + ' is invalid for ' + productId\n    );\n  }\n\n  return number;\n}\n\n// Analyse every inventory record\nreturn products.map(item => {\n\n  const product = item.json;\n\n  const productId = getField(product, 'Product ID');\n\n  const productName = getField(product, 'Product Name');\n\n  const branch = getField(product, 'Branch');\n\n  const currentStock = toNumber(\n    getField(product, 'Current Stock'),\n    'Current Stock',\n    productId\n  );\n\n  const minimumStock = toNumber(\n    getField(product, 'Minimum Stock'),\n    'Minimum Stock',\n    productId\n  );\n\n  // Our practice target is twice the minimum stock\n  const targetStock = minimumStock * 2;\n\n  const reorderQuantity = Math.max(\n    0,\n    Math.ceil(targetStock - currentStock)\n  );\n\n  // Determine restocking priority\n  let priority = 'NORMAL';\n\n  if (currentStock === 0) {\n    priority = 'CRITICAL';\n\n  } else if (currentStock <= minimumStock / 2) {\n    priority = 'HIGH';\n\n  } else if (currentStock <= minimumStock) {\n    priority = 'MEDIUM';\n  }\n\n  const needsRestocking = currentStock <= minimumStock;\n\n  return {\n    json: {\n      productId,\n      productName,\n      branch,\n      currentStock,\n      minimumStock,\n      targetStock,\n      reorderQuantity,\n      priority,\n      needsRestocking\n    }\n  };\n\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        -192
+      ],
+      "id": "68398318-8700-4cda-a83c-b5836a7b6b3a",
+      "name": "16 - Calculate Restocking Requirements"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "05bae583-ddfe-4ca3-a8e9-e5cb2fc3b8a4",
+              "leftValue": "={{ $json.needsRestocking }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.4,
+      "position": [
+        -528,
+        -192
+      ],
+      "id": "74f20991-ac8a-4a29-9a6c-6f1a082fd731",
+      "name": "17 - Identify Products Needing Restock"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Restocking_Recommendations",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Pending Key": "={{ $json.productId + '|' + $json.branch + '|PENDING' }}",
+            "Analysis Date": "={{ $now.toISO() }}",
+            "Product ID": "={{ $json.productId }}",
+            "Product Name": "={{ $json.productName }}",
+            "Branch": "={{ $json.branch }}",
+            "Current Stock": "={{ $json.currentStock }}",
+            "Minimum Stock": "={{ $json.minimumStock }}",
+            "Target Stock": "={{ $json.targetStock }}",
+            "Reorder Quantity": "={{ $json.reorderQuantity }}",
+            "Priority": "={{ $json.priority }}",
+            "Approval Status": "PENDING"
+          },
+          "matchingColumns": [
+            "Pending Key"
+          ],
+          "schema": [
+            {
+              "id": "Analysis Date",
+              "displayName": "Analysis Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product ID",
+              "displayName": "Product ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Name",
+              "displayName": "Product Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Stock",
+              "displayName": "Current Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Minimum Stock",
+              "displayName": "Minimum Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Target Stock",
+              "displayName": "Target Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reorder Quantity",
+              "displayName": "Reorder Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approval Status",
+              "displayName": "Approval Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pending Key",
+              "displayName": "Pending Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -304,
+        -192
+      ],
+      "id": "6cf17fbe-1883-4fb0-a5eb-c9bbe51be031",
+      "name": "18 - Save Restocking Recommendations"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01945e3b-3fff-4393-bf16-3080d1150e7e",
+              "name": "recipientType",
+              "value": "Inventory Manager ",
+              "type": "string"
+            },
+            {
+              "id": "f06cc3c8-16b2-4b49-8bfd-a7fa8e592f8d",
+              "name": "emailSubject",
+              "value": "={{ 'RESTOCKING REQUEST - ' + $('17 - Identify Products Needing Restock').first().json.productName }}",
+              "type": "string"
+            },
+            {
+              "id": "7b6bcf26-513d-45d2-b308-3982f3fc1799",
+              "name": "emailBody",
+              "value": "= {{ (() => {   const p = $('17 - Identify Products Needing Restock').first().json;    return `SMARTSTOCK AI INVENTORY RESTOCKING RECOMMENDATION \n\nDear Inventory Manager,  \nAn inventory analysis has identified a product that requires restocking. \nPRODUCT INFORMATION \nProduct Name: ${p.productName} \nProduct ID: ${p.productId} \nBranch: ${p.branch}  \n\nINVENTORY ANALYSIS  Current Stock: ${p.currentStock} units Minimum Stock: ${p.minimumStock} units Target Stock: ${p.targetStock} units \n\nRECOMMENDATION  \nSuggested Order: ${p.reorderQuantity} units Priority: ${p.priority} \nApproval Status: PENDING  ACTION REQUIRED  Please review the recommended quantity and approve or reject the purchase request.  No purchase order has been placed.  \n\nThis recommendation was automatically generated by SmartStock AI.`; })() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        48,
+        80
+      ],
+      "id": "0eb9a420-ebf5-4ced-a8c3-44d017abf319",
+      "name": "19 - Prepare Restocking Notification"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "={{ $json.emailSubject }}",
+        "message": "={{ $json.emailBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        256,
+        80
+      ],
+      "id": "420c555d-5ae8-470a-8055-e7d67a290695",
+      "name": "20 - Send Restocking Recommendation"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "0bca3e8a-c21d-4fdb-ba8d-a4e613b397f2",
+              "leftValue": "={{ $json['Notification Sent'] }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        144,
+        -192
+      ],
+      "id": "8e2db239-295c-4c67-b938-393a665bd36d",
+      "name": "21 - Has Recommendation Been Notified?"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Restocking_Recommendations",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Pending Key",
+              "lookupValue": "={{ $('17 - Identify Products Needing Restock').first().json.productId + '|' + $('17 - Identify Products Needing Restock').first().json.branch + '|PENDING' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -80,
+        -192
+      ],
+      "id": "262c7799-3ce6-4363-90e8-bb16aa93f9b9",
+      "name": "22 - Check Notification Status"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Restocking_Recommendations",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Pending Key": "={{ $('17 - Identify Products Needing Restock').first().json.productId + '|' + $('17 - Identify Products Needing Restock').first().json.branch + '|PENDING' }}",
+            "Notification Sent": "YES",
+            "Notification Date ": "={{ $now.toISO() }}",
+            "Analysis Date": "={{ $('22 - Check Notification Status').first().json['Analysis Date'] }}",
+            "Product ID": "={{ $('22 - Check Notification Status').item.json['Product ID'] }}",
+            "Product Name": "={{ $('22 - Check Notification Status').item.json['Product Name'] }}",
+            "Branch": "={{ $('22 - Check Notification Status').item.json.Branch }}",
+            "Current Stock": "={{ $('22 - Check Notification Status').item.json['Current Stock'] }}",
+            "Minimum Stock": "={{ $('22 - Check Notification Status').item.json['Minimum Stock'] }}",
+            "Target Stock": "={{ $('22 - Check Notification Status').item.json['Target Stock'] }}",
+            "Reorder Quantity": "={{ $('22 - Check Notification Status').item.json['Reorder Quantity'] }}",
+            "Priority": "={{ $('22 - Check Notification Status').item.json.Priority }}",
+            "Approval Status": "={{ $('22 - Check Notification Status').item.json['Approval Status'] }}"
+          },
+          "matchingColumns": [
+            "Pending Key"
+          ],
+          "schema": [
+            {
+              "id": "Analysis Date",
+              "displayName": "Analysis Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product ID",
+              "displayName": "Product ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Name",
+              "displayName": "Product Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Stock",
+              "displayName": "Current Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Minimum Stock",
+              "displayName": "Minimum Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Target Stock",
+              "displayName": "Target Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reorder Quantity",
+              "displayName": "Reorder Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approval Status",
+              "displayName": "Approval Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pending Key",
+              "displayName": "Pending Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notification Sent",
+              "displayName": "Notification Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notification Date ",
+              "displayName": "Notification Date ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        80
+      ],
+      "id": "fa02b1fe-1c79-4d9e-8921-029c1940e718",
+      "name": "23 - Record Notification Delivery"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1200,
+        -192
+      ],
+      "id": "7d2f31c1-983c-49f9-9e97-0d20ef7d5f22",
+      "name": "24 - Daily Restocking Schedule"
+    }
+  ],
+  "connections": {
+    "14 - Start Restocking Analysis": {
+      "main": [
+        [
+          {
+            "node": "15 - Retrieve All Stock Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15 - Retrieve All Stock Records": {
+      "main": [
+        [
+          {
+            "node": "16 - Calculate Restocking Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "16 - Calculate Restocking Requirements": {
+      "main": [
+        [
+          {
+            "node": "17 - Identify Products Needing Restock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "17 - Identify Products Needing Restock": {
+      "main": [
+        [
+          {
+            "node": "18 - Save Restocking Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "18 - Save Restocking Recommendations": {
+      "main": [
+        [
+          {
+            "node": "22 - Check Notification Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "19 - Prepare Restocking Notification": {
+      "main": [
+        [
+          {
+            "node": "20 - Send Restocking Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "21 - Has Recommendation Been Notified?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "19 - Prepare Restocking Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "22 - Check Notification Status": {
+      "main": [
+        [
+          {
+            "node": "21 - Has Recommendation Been Notified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "20 - Send Restocking Recommendation": {
+      "main": [
+        [
+          {
+            "node": "23 - Record Notification Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "24 - Daily Restocking Schedule": {
+      "main": [
+        [
+          {
+            "node": "15 - Retrieve All Stock Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}

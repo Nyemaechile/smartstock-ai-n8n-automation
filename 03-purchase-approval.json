@@ -1,0 +1,404 @@
+{
+  "name": "SmartStock AI - Purchase Approval",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "\tSmartStock AI - Purchase Approval",
+        "formDescription": "Review and approve or reject pending inventory restocking recommendations.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Recommendation Key",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Manager Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approved "
+                  },
+                  {
+                    "option": "REJECTED"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Approved Quantity",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "Remarks",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -496,
+        -96
+      ],
+      "id": "70a7e704-7b56-4a29-bf63-e1458140c258",
+      "name": "25 - Purchase Approval Form"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Restocking_Recommendations",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Pending Key",
+              "lookupValue": "={{ $('25 - Purchase Approval Form').first().json['Recommendation Key'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -272,
+        -96
+      ],
+      "id": "6db38a11-ac5a-4553-b841-1f889c122b3b",
+      "name": "26 - Find Pending Purchase Request."
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst form = $('25 - Purchase Approval Form').first().json;\nconst request = $input.first().json;\n\n// Read the manager's submitted decision\nconst decision = String(form['Decision'] ?? '')\n  .trim()\n  .toUpperCase();\n\nconst managerName = String(form['Manager Name'] ?? '')\n  .trim();\n\nconst recommendationKey = String(\n  form['Recommendation Key'] ?? ''\n).trim();\n\nconst approvedQuantityRaw = form['Approved Quantity'];\n\nconst approvedQuantity =\n  approvedQuantityRaw === undefined ||\n  approvedQuantityRaw === null ||\n  String(approvedQuantityRaw).trim() === ''\n    ? null\n    : Number(approvedQuantityRaw);\n\n// Read the existing recommendation\nconst currentStatus = String(\n  request['Approval Status'] ?? ''\n).trim().toUpperCase();\n\nconst savedKey = String(\n  request['Pending Key'] ?? ''\n).trim();\n\n// Validate the request\nlet valid = true;\nlet message = '';\n\nif (!recommendationKey || recommendationKey !== savedKey) {\n  valid = false;\n  message = 'Recommendation key does not match.';\n\n} else if (currentStatus !== 'PENDING') {\n  valid = false;\n  message = 'This recommendation is no longer pending.';\n\n} else if (!managerName) {\n  valid = false;\n  message = 'Manager name is required.';\n\n} else if (!['APPROVED', 'REJECTED'].includes(decision)) {\n  valid = false;\n  message = 'Invalid approval decision.';\n\n} else if (\n  decision === 'APPROVED' &&\n  (!Number.isInteger(approvedQuantity) ||\n   approvedQuantity <= 0)\n) {\n  valid = false;\n  message = 'Approved quantity must be a positive whole number.';\n\n} else {\n  message = 'Purchase decision validated successfully.';\n}\n\n// Return the result\nreturn [{\n  json: {\n    ...request,\n    row_number: request.row_number,\n    recommendationKey,\n    managerName,\n    decision,\n    approvedQuantity: decision === 'APPROVED'\n      ? approvedQuantity\n      : null,\n    remarks: form['Remarks'] ?? '',\n    valid,\n    message,\n    approvalDate: new Date().toISOString()\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -96
+      ],
+      "id": "84836b35-79b4-429b-9b4a-03d97f7cd083",
+      "name": "27 - Validate Purchase Decision"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "5ef668a8-8ae1-4517-b864-36feefa0f962",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        176,
+        -96
+      ],
+      "id": "61d2c597-afd6-423c-824b-4b893585354c",
+      "name": "28 - Is Purchase Decision Valid?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Restocking_Recommendations",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Pending Key": "={{ $json.recommendationKey }}",
+            "Analysis Date": "={{ $json['Analysis Date'] }}",
+            "Product ID": "={{ $json['Product ID'] }}",
+            "Product Name": "={{ $json['Product Name'] }}",
+            "Branch": "={{ $json.Branch }}",
+            "Current Stock": "={{ $json['Current Stock'] }}",
+            "Minimum Stock": "={{ $json['Minimum Stock'] }}",
+            "Target Stock": "={{ $json['Target Stock'] }}",
+            "Reorder Quantity": "={{ $json['Reorder Quantity'] }}",
+            "Priority": "={{ $json.Priority }}",
+            "Approval Status": "={{ $json.decision }}",
+            "Notification Sent": "={{ $json['Notification Sent'] }}",
+            "Notification Date ": "={{ $json['Notification Date '] }}",
+            "Approved Quantity": "={{ $json.approvedQuantity }}",
+            "Approved By": "={{ $json.managerName }}",
+            "Approval Date": "={{ $json.approvalDate }}",
+            "Approval Remarks": "={{ $json.remarks }}"
+          },
+          "matchingColumns": [
+            "Pending Key"
+          ],
+          "schema": [
+            {
+              "id": "Analysis Date",
+              "displayName": "Analysis Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product ID",
+              "displayName": "Product ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Name",
+              "displayName": "Product Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Stock",
+              "displayName": "Current Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Minimum Stock",
+              "displayName": "Minimum Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Target Stock",
+              "displayName": "Target Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reorder Quantity",
+              "displayName": "Reorder Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approval Status",
+              "displayName": "Approval Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pending Key",
+              "displayName": "Pending Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notification Sent",
+              "displayName": "Notification Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notification Date ",
+              "displayName": "Notification Date ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approved Quantity",
+              "displayName": "Approved Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approved By",
+              "displayName": "Approved By",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approval Date",
+              "displayName": "Approval Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approval Remarks",
+              "displayName": "Approval Remarks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        -112
+      ],
+      "id": "ee99b990-ce33-4047-b6ea-d30e2e940209",
+      "name": "29 - Update Purchase Approval"
+    }
+  ],
+  "connections": {
+    "25 - Purchase Approval Form": {
+      "main": [
+        [
+          {
+            "node": "26 - Find Pending Purchase Request.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "26 - Find Pending Purchase Request.": {
+      "main": [
+        [
+          {
+            "node": "27 - Validate Purchase Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "27 - Validate Purchase Decision": {
+      "main": [
+        [
+          {
+            "node": "28 - Is Purchase Decision Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "28 - Is Purchase Decision Valid?": {
+      "main": [
+        [
+          {
+            "node": "29 - Update Purchase Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
